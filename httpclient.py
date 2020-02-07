@@ -43,10 +43,17 @@ class HTTPClient(object):
     def get_code(self, data):
         return int(data.split()[1])
 
-    def get_headers(self, host, path):
-        headers = "GET " + path + " HTTP/1.1\r\n" +\
-                  "Host: " + host + "\r\n" +\
-                  "Connection: close\r\n\r\n"
+    def get_headers(self, request, host, path, content="", content_length=0):
+        if request == "GET":
+            headers = "GET " + path + " HTTP/1.1\r\n" +\
+                      "Host: " + host + "\r\n" +\
+                      "Connection: close\r\n\r\n"
+        elif request == "POST":
+            headers = "POST " + path + " HTTP/1.1\r\n" +\
+                      "Host: " + host + "\r\n" +\
+                      "Content-Length: " + str(content_length) + "\r\n" +\
+                      "Content-Type: application/x-www-form-urlencoded" + "\r\n" +\
+                      "Connection: close\r\n\r\n"+ content + "\r\n\r\n"
         return headers
 
     def get_body(self, data):
@@ -81,7 +88,7 @@ class HTTPClient(object):
             path = "/"
         self.connect(host, port)
         
-        headers = self.get_headers(host, path)
+        headers = self.get_headers("GET", host, path)
         self.sendall(headers)
 
         response = self.recvall(self.socket)
@@ -109,12 +116,8 @@ class HTTPClient(object):
             content = urllib.parse.urlencode(args)
         else:
             content = ""
-        content_length = str(len(content))
-        headers = "POST " + path + " HTTP/1.1\r\n" +\
-                  "Host: " + host + "\r\n" +\
-                  "Content-Length: " + content_length + "\r\n" +\
-                  "Content-Type: application/x-www-form-urlencoded" + "\r\n" +\
-                  "Connection: close\r\n\r\n"+ content + "\r\n\r\n"
+        content_length = len(content)
+        headers = self.get_headers("POST", host, path, content, content_length)
         self.sendall(headers)
 
         response = self.recvall(self.socket)
