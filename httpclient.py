@@ -44,7 +44,12 @@ class HTTPClient(object):
         return int(data.split()[1])
 
     def get_headers(self,data):
-        return data.split("\r\n\r\n")[0]
+        if data.path == "":
+            data.path == "/"
+        headers = ("GET " + data.path + " HTTP/1.1\r\n" +
+                   "Host: " + data.hostname + "\r\n" +
+                   "Connection: close\r\n\r\n")
+        return headers
 
     def get_body(self, data):
         return data.split("\r\n\r\n")[1]
@@ -71,40 +76,53 @@ class HTTPClient(object):
         url_parse = urllib.parse.urlparse(url)
         host = url_parse.hostname
         port = url_parse.port
+        if not port:
+            port = 80
+        path = url_parse.path
+        if path == "":
+            path = "/"
         self.connect(host, port)
-
-        self.sendall(self.get_headers(url_parse))
+        
+        headers = ("GET " + path + " HTTP/1.1\r\n" +
+                   "Host: " + host + "\r\n" +
+                   "Connection: close\r\n\r\n")
+        self.sendall(headers)
+        
         response = self.recvall(self.socket)
         self.close()
-
         code = self.get_code(response)
         body = self.get_body(response)
+
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
         url_parse = urllib.parse.urlparse(url)
         host = url_parse.hostname
         port = url_parse.port
+        if not port:
+            port = 80
         path = url_parse.path
+        if path == "":
+            path = "/"
         self.connect(host, port)
-
+        
         if args:
             content = urllib.parse.urlencode(args)
         else:
             content = ""
-        content_length = len(content)
+        content_length = str(len(content))
         headers = "POST " + path + " HTTP/1.1\r\n" +\
                   "Host: " + host + "\r\n" +\
-                  "Content-Length: "+ str(content_length) + "\r\n" +\
-                  "Content-Type: application/x-www-form-urlencoded\r\n" +\
-                  "Connection: close\r\n\r\n"
+                  "Content-Length: " + content_length + "\r\n" +\
+                  "Content-Type: application/x-www-form-urlencoded" + "\r\n" +\
+                  "Connection: close\r\n\r\n"+ content + "\r\n\r\n"
         self.sendall(headers)
 
         response = self.recvall(self.socket)
         self.close()
-
         code = self.get_code(response)
         body = self.get_body(response)
+
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -112,7 +130,7 @@ class HTTPClient(object):
             return self.POST( url, args )
         else:
             return self.GET( url, args )
-    
+
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
