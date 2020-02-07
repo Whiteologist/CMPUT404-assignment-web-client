@@ -43,12 +43,10 @@ class HTTPClient(object):
     def get_code(self, data):
         return int(data.split()[1])
 
-    def get_headers(self,data):
-        if data.path == "":
-            data.path == "/"
-        headers = ("GET " + data.path + " HTTP/1.1\r\n" +
-                   "Host: " + data.hostname + "\r\n" +
-                   "Connection: close\r\n\r\n")
+    def get_headers(self, host, path):
+        headers = "GET " + path + " HTTP/1.1\r\n" +\
+                  "Host: " + host + "\r\n" +\
+                  "Connection: close\r\n\r\n"
         return headers
 
     def get_body(self, data):
@@ -83,15 +81,16 @@ class HTTPClient(object):
             path = "/"
         self.connect(host, port)
         
-        headers = ("GET " + path + " HTTP/1.1\r\n" +
-                   "Host: " + host + "\r\n" +
-                   "Connection: close\r\n\r\n")
+        headers = self.get_headers(host, path)
         self.sendall(headers)
-        
+
         response = self.recvall(self.socket)
         self.close()
         code = self.get_code(response)
-        body = self.get_body(response)
+        if code == 404:
+            body = ""
+        else:
+            body = self.get_body(response)
 
         return HTTPResponse(code, body)
 
